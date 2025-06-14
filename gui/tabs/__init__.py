@@ -1,0 +1,1 @@
+"""Tab widgets for the Mod Manager GUI."""
