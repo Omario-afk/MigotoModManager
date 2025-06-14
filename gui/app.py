@@ -21,13 +21,15 @@ class App(ctk.CTk):
         self.game_paths = load_data()
         self.tabs = {}
 
+        
+
+        # Game tabs
+        self.refresh_game_tabs()
+        
         # Settings tab
         self.settings_tab = self.tabview.add("Settings")
         self.settings_frame = SettingsTab(self.settings_tab, self.game_paths, self.refresh_game_tabs)
         self.settings_frame.pack(expand=True, fill="both")
-
-        # Game tabs
-        self.refresh_game_tabs()
 
     def refresh_game_tabs(self):
         """Refresh all game tabs with current settings."""
