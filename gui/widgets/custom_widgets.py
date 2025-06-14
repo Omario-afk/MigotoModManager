@@ -132,10 +132,8 @@ class CharacterImageButton(ImageButton):
         name_error = True
         for ext in ['.webp', '.png', '.jpg', '.jpeg', '.gif', '.bmp']:
             test_path = f"{base_path}{ext}"
-            print("test_path", test_path)
             if os.path.exists(test_path):
                 image_path = test_path
-                print("found!")
                 name_error = False
                 break
         if name_error and image_path is None:
@@ -143,10 +141,8 @@ class CharacterImageButton(ImageButton):
             new_base_path = base_path.replace(character_name_from_path, character_name_from_path.replace(" ", "_"))
             for ext in ['.webp', '.png', '.jpg', '.jpeg', '.gif', '.bmp']:
                 test_path = f"{new_base_path}{ext}"
-                print("test_path", test_path)
                 if os.path.exists(test_path):
                     image_path = test_path
-                    print("found!")
                     name_error = False
                     break
         # Fallback to original .png path if nothing found
