@@ -14,7 +14,7 @@ def get_icons(game, crop=False):
         name_tag = card.find('span', class_='emp-name')
         if name_tag:
             character_name = name_tag.text.strip()
-            print(character_name)
+            #print(character_name)
         else:
             character_name = "Unknown"
         if card:
