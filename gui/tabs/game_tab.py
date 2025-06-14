@@ -6,6 +6,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 from utils.character_matcher import match_character
 from utils.file_operations import get_directory_contents, find_matching_mods, copy_mod_folder
+from gui.widgets.custom_widgets import CharacterImageButton
 
 class GameTab(ctk.CTkFrame):
     """Game tab for mod management."""
@@ -25,7 +26,8 @@ class GameTab(ctk.CTkFrame):
 
     def _create_layout(self):
         """Create the main layout."""
-        self.character_frame = ctk.CTkFrame(self)
+        # Character frame with scrollable area
+        self.character_frame = ctk.CTkScrollableFrame(self, width=300, height=400)
         self.character_frame.pack(side="left", fill="y", padx=10, pady=10)
 
         self.mod_frame = ctk.CTkFrame(self)
@@ -44,44 +46,69 @@ class GameTab(ctk.CTkFrame):
         self.action_label.pack(pady=10)
 
     def populate_characters(self):
-        """Populate the character list."""
+        """Populate the character list with image buttons."""
         # Clear existing buttons
         for btn in self.character_buttons:
             btn.destroy()
         self.character_buttons.clear()
 
-        ctk.CTkLabel(self.character_frame, text="Characters:", font=ctk.CTkFont(weight="bold")).pack(pady=5)
+        # Use grid for the label as well
+        ctk.CTkLabel(
+            self.character_frame, 
+            text="Characters:", 
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).grid(row=0, column=0, columnspan=2, pady=10)  # Span two columns
 
         if not self.mods_from or not os.path.isdir(self.mods_from):
-            ctk.CTkLabel(self.character_frame, text="(Directory not found)").pack()
+            ctk.CTkLabel(self.character_frame, text="(Directory not found)").grid(row=1, column=0, columnspan=2)
             return
 
         subfolders = get_directory_contents(self.mods_from)
         if not subfolders:
-            ctk.CTkLabel(self.character_frame, text="(No character folders found)").pack()
+            ctk.CTkLabel(self.character_frame, text="(No character folders found)").grid(row=1, column=0, columnspan=2)
             return
 
-        for folder in subfolders:
+        # Create a grid layout for character buttons
+        chars_per_row = 2  # Number of characters per row
+        
+        for i, folder in enumerate(subfolders):
             matched = match_character(folder, self.character_list)
-            btn = ctk.CTkButton(
-                self.character_frame, 
-                text=matched, 
-                width=180, 
-                anchor="w",
-                command=lambda f=folder, m=matched: self.show_character_mods(f, m)
+            
+            # Create image button
+            char_btn = CharacterImageButton(
+                master=self.character_frame,
+                character_name=matched,
+                folder_name=folder,
+                game_name=self.game,
+                on_click=self.show_character_mods,
+                width=130,
+                height=150
             )
-            btn.pack(pady=2, fill="x")
-            self.character_buttons.append(btn)
+            
+            # Calculate grid position
+            row = (i // chars_per_row) + 1  # Start rows after the label
+            col = i % chars_per_row
+            
+            char_btn.grid(row=row, column=col, padx=5, pady=5, sticky="nsew")
+            self.character_buttons.append(char_btn)
+    
+        # Configure grid weights for responsive layout
+        for col in range(chars_per_row):
+            self.character_frame.grid_columnconfigure(col, weight=1)
 
     def show_character_mods(self, folder, matched_name):
         """Show mods for the selected character."""
         self.selected_character = folder
         self._clear_frames()
         
-        ctk.CTkLabel(self.mod_frame, text=f"{matched_name} Mods:", font=ctk.CTkFont(weight="bold")).pack(pady=5)
+        ctk.CTkLabel(
+            self.mod_frame, 
+            text=f"{matched_name} Mods:", 
+            font=ctk.CTkFont(size=18, weight="bold")
+        ).pack(pady=10)
         
         # Create a frame for available mods
-        mods_container = ctk.CTkFrame(self.mod_frame)
+        mods_container = ctk.CTkScrollableFrame(self.mod_frame)
         mods_container.pack(fill="both", expand=True, padx=5, pady=5)
         
         char_path = os.path.join(self.mods_from, folder)
@@ -100,12 +127,15 @@ class GameTab(ctk.CTkFrame):
                 mods_container, 
                 text=sub, 
                 anchor="w",
+                height=35,
+                font=ctk.CTkFont(size=12),
                 command=lambda s=sub: self.select_mod_folder(s)
             )
-            btn.pack(fill="x", padx=10, pady=2)
+            btn.pack(fill="x", padx=10, pady=3)
         
         # Add a separator
-        ctk.CTkFrame(self.mod_frame, height=2).pack(fill="x", padx=5, pady=10)
+        separator = ctk.CTkFrame(self.mod_frame, height=2)
+        separator.pack(fill="x", padx=5, pady=15)
         
         # Display current mod in "to" folder at the bottom
         self._create_current_mod_section(folder)
@@ -128,12 +158,17 @@ class GameTab(ctk.CTkFrame):
         
         ctk.CTkLabel(
             current_mod_frame, 
-            text="Current Mod in Game Folder:", 
-            font=ctk.CTkFont(weight="bold")
-        ).pack(pady=5)
+            text="Currently Installed:", 
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(pady=(10, 5))
         
-        self.current_mod_label = ctk.CTkLabel(current_mod_frame, text="")
-        self.current_mod_label.pack(pady=5)
+        self.current_mod_label = ctk.CTkLabel(
+            current_mod_frame, 
+            text="",
+            font=ctk.CTkFont(size=11),
+            wraplength=300
+        )
+        self.current_mod_label.pack(pady=(0, 10))
         
         self.display_current_mod(folder)
 
@@ -169,20 +204,34 @@ class GameTab(ctk.CTkFrame):
         for widget in self.action_frame.winfo_children():
             widget.destroy()
 
+        # Selected mod info
+        info_frame = ctk.CTkFrame(self.action_frame)
+        info_frame.pack(fill="x", padx=10, pady=10)
+        
         ctk.CTkLabel(
-            self.action_frame, 
-            text=f"Selected: {mod_folder}", 
-            font=ctk.CTkFont(weight="bold")
-        ).pack(pady=10)
+            info_frame, 
+            text="Selected Mod:", 
+            font=ctk.CTkFont(size=12, weight="bold")
+        ).pack(pady=(10, 5))
+        
+        ctk.CTkLabel(
+            info_frame, 
+            text=mod_folder, 
+            font=ctk.CTkFont(size=11),
+            wraplength=180
+        ).pack(pady=(0, 10))
 
+        # Replace button
         replace_btn = ctk.CTkButton(
             self.action_frame, 
-            text="Replace",
+            text="Replace Mod",
             command=self.replace_mod, 
-            fg_color="orange", 
-            hover_color="darkorange"
+            fg_color=("orange", "darkorange"), 
+            hover_color=("darkorange", "orange"),
+            height=40,
+            font=ctk.CTkFont(size=13, weight="bold")
         )
-        replace_btn.pack(pady=10)
+        replace_btn.pack(pady=20)
 
     def replace_mod(self):
         """Replace the mod in the destination folder."""
@@ -194,6 +243,10 @@ class GameTab(ctk.CTkFrame):
         dest_path = os.path.join(self.mods_to, self.selected_mod_folder)
 
         if copy_mod_folder(source_path, dest_path):
-            messagebox.showinfo("Success", f"Successfully replaced '{self.selected_mod_folder}' in the destination folder!")
+            messagebox.showinfo(
+                "Success", 
+                f"Successfully installed '{self.selected_mod_folder}'!\n\n"
+                f"The mod has been copied to your game directory."
+            )
             # Refresh the current mod display
             self.display_current_mod(self.selected_character)

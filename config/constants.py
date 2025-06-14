@@ -28,3 +28,16 @@ CHARACTER_LISTS = {
         # Add Honkai Star Rail characters here
     ]
 }
+
+CHARACTER_ICON_URL = {
+        "ZenlessZoneZero": "https://www.prydwen.gg/zenless/characters",
+    "Wuthering Waves": [
+        # Add Wuthering Waves characters here
+    ],
+    "Genshin": [
+        # Add Genshin characters here
+    ],
+    "Honkai Star Rail": [
+        # Add Honkai Star Rail characters here
+    ]
+}
