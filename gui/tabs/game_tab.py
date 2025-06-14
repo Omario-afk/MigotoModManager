@@ -241,8 +241,9 @@ class GameTab(ctk.CTkFrame):
 
         source_path = os.path.join(self.mods_from, self.selected_character, self.selected_mod_folder)
         dest_path = os.path.join(self.mods_to, self.selected_mod_folder)
-
-        if copy_mod_folder(source_path, dest_path):
+        
+        print("self.game:", self.game)
+        if copy_mod_folder(source_path, dest_path, self.game):
             messagebox.showinfo(
                 "Success", 
                 f"Successfully installed '{self.selected_mod_folder}'!\n\n"
