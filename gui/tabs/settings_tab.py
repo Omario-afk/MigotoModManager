@@ -10,6 +10,8 @@ import queue
 from config.constants import GAME_TABS
 from config.settings import save_data
 from utils.icons.get_icons import get_icons
+import os
+import sys
 
 class SettingsTab(ctk.CTkFrame):
     """Settings tab for configuring mod directories."""
@@ -172,6 +174,9 @@ class SettingsTab(ctk.CTkFrame):
         
         save_btn = ctk.CTkButton(self, text="Save Settings", command=self.save_settings)
         save_btn.pack(pady=15)
+        
+        restart_button = ctk.CTkButton(self, text="Reload App", command=self._restart_app, fg_color="#c36424")
+        restart_button.pack(pady=10)
 
     def _load_saved_values(self):
         """Load saved values into entry fields."""
@@ -187,10 +192,9 @@ class SettingsTab(ctk.CTkFrame):
             entry.delete(0, "end")
             entry.insert(0, dir_)
 
-    # ====== OLD METHOD REPLACED - COMMENTED OUT ======
-    # def _get_icons(self, entry):
-    #     get_icons(game=entry, crop=False)
-    # ================================================
+    def _restart_app(self):
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
         
     def save_settings(self):
         """Save current settings."""
