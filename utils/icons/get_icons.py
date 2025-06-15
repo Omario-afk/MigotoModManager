@@ -2,8 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import os
 from config.constants import CHARACTER_ICON_URL
-from utils.crop_icon import crop_image_to_square
-
+#from crop_icon import crop_image_to_square
+def crop_image_to_square(*args):
+    pass
 def get_icons(game, crop=False):
     url = CHARACTER_ICON_URL[game]
     response = requests.get(url)
@@ -39,4 +40,3 @@ def get_icons(game, crop=False):
         else:
             print("No avatar div found in this card.")
             
-get_icons("ZenlessZoneZero", crop=True)
