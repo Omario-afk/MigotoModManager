@@ -110,7 +110,7 @@ class SettingsTab(ctk.CTkFrame):
     def _download_icons_thread(self, game):
         """Download icons in separate thread."""
         try:
-            get_icons(game=game, crop=False)
+            get_icons(game=game, crop=True)
             # Signal completion via queue
             self.download_queue.put(("success", game))
         except Exception as e:
