@@ -114,24 +114,22 @@ class GameTab(ctk.CTkFrame):
         char_path = os.path.join(self.mods_from, folder)
         if not os.path.isdir(char_path):
             ctk.CTkLabel(mods_container, text="(Character folder not found)").pack()
-            return
-        
-        subfolders = get_directory_contents(char_path)
-        if not subfolders:
-            ctk.CTkLabel(mods_container, text="(No mod folders)").pack()
-            return
-        
-        # Display all available mods
-        for sub in subfolders:
-            btn = ctk.CTkButton(
-                mods_container, 
-                text=sub, 
-                anchor="w",
-                height=35,
-                font=ctk.CTkFont(size=12),
-                command=lambda s=sub: self.select_mod_folder(s)
-            )
-            btn.pack(fill="x", padx=10, pady=3)
+        else:
+            subfolders = get_directory_contents(char_path)
+            if not subfolders:
+                ctk.CTkLabel(mods_container, text="(No mod folders)").pack()
+            else:
+                # Display all available mods
+                for sub in subfolders:
+                    btn = ctk.CTkButton(
+                        mods_container, 
+                        text=sub, 
+                        anchor="w",
+                        height=35,
+                        font=ctk.CTkFont(size=12),
+                        command=lambda s=sub: self.select_mod_folder(s)
+                    )
+                    btn.pack(fill="x", padx=10, pady=3)
         
         # Add a separator
         separator = ctk.CTkFrame(self.mod_frame, height=2)
@@ -139,6 +137,13 @@ class GameTab(ctk.CTkFrame):
         
         # Display current mod in "to" folder at the bottom
         self._create_current_mod_section(folder)
+        
+        # Add another separator
+        separator2 = ctk.CTkFrame(self.mod_frame, height=2)
+        separator2.pack(fill="x", padx=5, pady=15)
+        
+        # Create download section
+        self._create_download_section(folder)
 
     def _clear_frames(self):
         """Clear mod and action frames."""
@@ -170,7 +175,42 @@ class GameTab(ctk.CTkFrame):
         )
         self.current_mod_label.pack(pady=(0, 10))
         
+        # Create download section
+        #self._create_download_section(current_mod_frame, folder)
+        
         self.display_current_mod(folder)
+
+    def _create_download_section(self, character_folder):
+        """Create the download section with its own frame."""
+        download_frame = ctk.CTkFrame(self.mod_frame)
+        download_frame.pack(fill="x", padx=5, pady=5)
+        
+        ctk.CTkLabel(
+            download_frame,
+            text="Download More Mods",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(pady=(10, 5))
+        
+        # Add Download More button
+        download_btn = ctk.CTkButton(
+            download_frame,
+            text="Browse GameBanana",
+            command=lambda: self.download_more_mods(character_folder),
+            fg_color=("green", "darkgreen"),
+            hover_color=("darkgreen", "green"),
+            height=35,
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        download_btn.pack(pady=10)
+
+    def download_more_mods(self, character_folder):
+        """Handle downloading more mods for the selected character."""
+        matched_name = match_character(character_folder, self.character_list)
+        # TODO: Implement the download functionality
+        messagebox.showinfo(
+            "Download More",
+            f"Download functionality for {matched_name} will be implemented here."
+        )
 
     def display_current_mod(self, character_folder):
         """Display the current mod in the destination folder."""
