@@ -1,2 +1,6 @@
 customtkinter==5.2.2
 Pillow>=9.0.0
+selenium>=4.15.2
+webdriver-manager>=4.0.1
+requests>=2.31.0
+beautifulsoup4>=4.12.2
