@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 import os
 from config.constants import CHARACTER_ICON_URL
 from utils.icons.crop_icon import crop_image_to_square
-from time import sleep
 
 def get_icons(game, crop=False):
     
@@ -16,7 +15,6 @@ def get_icons(game, crop=False):
     existing_raw = [ assets_raw_path + "/" + img for img in os.listdir(assets_raw_path)]
     existing_icons = [ assets_icons_path + "/" + img for img in os.listdir(assets_icons_path)]
     
-    #input()
     url = CHARACTER_ICON_URL[game]
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
