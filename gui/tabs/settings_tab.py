@@ -84,8 +84,8 @@ class SettingsTab(ctk.CTkFrame):
         """Save current settings."""
         for game, (from_entry, to_entry) in self.entries.items():
             self.game_paths[game] = {
-                "from": from_entry.get().strip(),
-                "to": to_entry.get().strip()
+                "from": from_entry.get().strip().replace('\\', '/'),
+                "to": to_entry.get().strip().replace('\\', '/')
             }
         save_data(self.game_paths)
         self.on_save()
