@@ -99,9 +99,7 @@ class SettingsTab(ctk.CTkFrame):
         button = self.get_buttons[game]
         button.configure(
         text="Downloading...",
-        fg_color="#FF5517",
-        hover_color="#721D00",
-        text_color="#ffffff",
+        fg_color="#FF6600",
         state="disabled"
         )
         
