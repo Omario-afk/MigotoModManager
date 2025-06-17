@@ -2,12 +2,14 @@
 Game tab for managing mods for a specific game.
 """
 import os
+import threading
 import customtkinter as ctk
 from tkinter import messagebox
 from utils.character_matcher import match_character
 from utils.file_operations import get_directory_contents, find_matching_mods, copy_mod_folder
 from gui.widgets.custom_widgets import CharacterImageButton
 from utils.zip.extract import extract_archive
+from gui.widgets.extraction_progress import ExtractionProgressWindow
 
 class GameTab(ctk.CTkFrame):
     """Game tab for mod management."""
@@ -21,6 +23,7 @@ class GameTab(ctk.CTkFrame):
         self.character_buttons = []
         self.selected_character = None
         self.selected_mod_folder = None
+        self.progress_window = None
 
         self._create_layout()
         self.populate_characters()
@@ -319,12 +322,30 @@ class GameTab(ctk.CTkFrame):
         char_path = os.path.join(self.mods_from, self.selected_character)
         archive_path = os.path.join(char_path, self.selected_mod_folder)
         
-        if extract_archive(archive_path, char_path):
-            messagebox.showinfo("Success", "Archive extracted successfully!")
-            # Refresh the mod list
-            self.show_character_mods(self.selected_character, match_character(self.selected_character, self.character_list))
+        # Create progress window
+        self.progress_window = ExtractionProgressWindow(self, total_files=1)
+        
+        # Start extraction in a separate thread
+        thread = threading.Thread(
+            target=self._extract_single_archive_thread,
+            args=(archive_path, char_path),
+            daemon=True
+        )
+        thread.start()
+
+    def _extract_single_archive_thread(self, archive_path, char_path):
+        """Thread function for single archive extraction."""
+        success = extract_archive(archive_path, char_path, self.progress_window)
+        
+        if success:
+            self.progress_window.update_progress(os.path.basename(archive_path), True)
+            # Refresh the mod list after a short delay
+            self.after(1000, lambda: self.show_character_mods(
+                self.selected_character,
+                match_character(self.selected_character, self.character_list)
+            ))
         else:
-            messagebox.showerror("Error", "Failed to extract archive.")
+            self.progress_window.update_progress(os.path.basename(archive_path), False)
 
     def extract_all_archives(self):
         """Extract all archives in the character folder."""
@@ -339,19 +360,35 @@ class GameTab(ctk.CTkFrame):
             messagebox.showinfo("Info", "No archives found to extract.")
             return
 
+        # Create progress window
+        self.progress_window = ExtractionProgressWindow(self, total_files=len(archives))
+        
+        # Start extraction in a separate thread
+        thread = threading.Thread(
+            target=self._extract_all_archives_thread,
+            args=(char_path, archives),
+            daemon=True
+        )
+        thread.start()
+
+    def _extract_all_archives_thread(self, char_path, archives):
+        """Thread function for extracting all archives."""
         success = True
         for archive in archives:
             archive_path = os.path.join(char_path, archive)
-            if not extract_archive(archive_path, char_path):
+            if extract_archive(archive_path, char_path, self.progress_window):
+                self.progress_window.update_progress(archive, True)
+            else:
+                self.progress_window.update_progress(archive, False)
                 success = False
                 break
 
         if success:
-            messagebox.showinfo("Success", "All archives extracted successfully!")
-            # Refresh the mod list
-            self.show_character_mods(self.selected_character, match_character(self.selected_character, self.character_list))
-        else:
-            messagebox.showerror("Error", "Failed to extract some archives.")
+            # Refresh the mod list after a short delay
+            self.after(1000, lambda: self.show_character_mods(
+                self.selected_character,
+                match_character(self.selected_character, self.character_list)
+            ))
 
     def replace_mod(self):
         """Replace the mod in the destination folder."""

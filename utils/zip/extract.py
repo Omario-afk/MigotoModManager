@@ -85,19 +85,21 @@ def check_unrar_installed():
     except Exception:
         return False
 
-def extract_archive(archive_path, extract_to=None):
+def extract_archive(archive_path, extract_to=None, progress_window=None):
     """
     Extract a ZIP or RAR archive to the specified directory.
     
     Args:
         archive_path (str): Path to the archive file
         extract_to (str, optional): Directory to extract to. If None, creates a directory named after the archive.
+        progress_window: Optional progress window to update
     
     Returns:
         bool: True if successful, False otherwise
     """
     if not os.path.exists(archive_path):
-        messagebox.showerror("Error", f"Archive not found: {archive_path}")
+        if progress_window:
+            progress_window.show_error(f"Archive not found: {archive_path}")
         return False
         
     # If no extract directory specified, create one named after the archive
@@ -122,15 +124,18 @@ def extract_archive(archive_path, extract_to=None):
             success = extract_zip(archive_path, extract_to)
         elif ext == '.rar':
             if not _unrar.is_installed():
-                messagebox.showerror(
-                    "Error", 
+                error_msg = (
                     "UnRAR is not installed or not found. Please install WinRAR (Windows) or unrar (Linux/Mac).\n\n"
                     "Windows: Download and install WinRAR from https://www.win-rar.com/\n"
                 )
+                if progress_window:
+                    progress_window.show_error(error_msg)
                 return False
             success = extract_rar(archive_path, extract_to)
         else:
-            messagebox.showerror("Error", f"Unsupported archive format: {ext}")
+            error_msg = f"Unsupported archive format: {ext}"
+            if progress_window:
+                progress_window.show_error(error_msg)
             return False
             
         # If extraction was successful and delete_after_extract is enabled, delete the archive
@@ -146,7 +151,9 @@ def extract_archive(archive_path, extract_to=None):
         return success
             
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to extract archive: {str(e)}")
+        error_msg = f"Failed to extract archive: {str(e)}"
+        if progress_window:
+            progress_window.show_error(error_msg)
         return False
 
 def extract_zip(zip_path, extract_to):
@@ -167,7 +174,7 @@ def extract_zip(zip_path, extract_to):
         return True
         
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to extract ZIP: {str(e)}")
+        print(f"Failed to extract ZIP: {str(e)}")
         return False
 
 def extract_rar(rar_path, extract_to):
@@ -188,6 +195,6 @@ def extract_rar(rar_path, extract_to):
         return True
         
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to extract RAR: {str(e)}")
+        print(f"Failed to extract RAR: {str(e)}")
         return False
 
