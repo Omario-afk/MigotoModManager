@@ -104,6 +104,10 @@ def extract_archive(archive_path, extract_to=None):
     if extract_to is None:
         archive_name = os.path.splitext(os.path.basename(archive_path))[0]
         extract_to = os.path.join(os.path.dirname(archive_path), archive_name)
+    else:
+        # If extract_to is provided, create a subfolder named after the archive
+        archive_name = os.path.splitext(os.path.basename(archive_path))[0]
+        extract_to = os.path.join(extract_to, archive_name)
         
     # Create extract directory if it doesn't exist
     if not os.path.exists(extract_to):
