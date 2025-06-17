@@ -1,10 +1,15 @@
-todo.txt
-__pycache__
-mod_manager_data.json
-.vscode
-.idea
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
 .env
-.venv
-.gitignore
-.gitignore
-.pyc
+.venv/
+
+# Project specific
+todo.txt
+mod_manager_data.json
