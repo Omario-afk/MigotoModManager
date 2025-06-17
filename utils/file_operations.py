@@ -67,18 +67,23 @@ def copy_mod_folder(source_path, dest_path, game_name=None):
 
 def get_directory_contents(path):
     """
-    Get list of subdirectories in a given path.
+    Get list of subdirectories and archive files (.zip, .rar) in a given path.
     
     Args:
         path (str): Path to check
     
     Returns:
-        list: List of subdirectory names
+        list: List of subdirectory names and archive files
     """
     if not path or not os.path.isdir(path):
         return []
     
-    return [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    contents = []
+    for f in os.listdir(path):
+        full_path = os.path.join(path, f)
+        if os.path.isdir(full_path) or f.lower().endswith(('.zip', '.rar')):
+            contents.append(f)
+    return contents
 
 def find_matching_mods(dest_path, character_name, search_terms):
     """

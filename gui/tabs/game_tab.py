@@ -119,15 +119,35 @@ class GameTab(ctk.CTkFrame):
             if not subfolders:
                 ctk.CTkLabel(mods_container, text="(No mod folders)").pack()
             else:
+                # Check if any of the items are archives
+                has_archives = any(f.lower().endswith(('.zip', '.rar')) for f in subfolders)
+                
+                # Add Extract All button if archives exist
+                if has_archives:
+                    extract_btn = ctk.CTkButton(
+                        mods_container,
+                        text="Extract All Archives",
+                        command=self.extract_all_archives,
+                        fg_color=("green", "darkgreen"),
+                        hover_color=("darkgreen", "green"),
+                        height=40,
+                        font=ctk.CTkFont(size=13, weight="bold")
+                    )
+                    extract_btn.pack(fill="x", padx=10, pady=10)
+                
                 # Display all available mods
                 for sub in subfolders:
+                    is_archive = sub.lower().endswith(('.zip', '.rar'))
+                    
                     btn = ctk.CTkButton(
                         mods_container, 
                         text=sub, 
                         anchor="w",
                         height=35,
                         font=ctk.CTkFont(size=12),
-                        command=lambda s=sub: self.select_mod_folder(s)
+                        command=lambda s=sub: self.select_mod_folder(s),
+                        fg_color=("orange", "darkorange") if is_archive else None,
+                        hover_color=("darkorange", "orange") if is_archive else None
                     )
                     btn.pack(fill="x", padx=10, pady=3)
         
@@ -261,17 +281,76 @@ class GameTab(ctk.CTkFrame):
             wraplength=180
         ).pack(pady=(0, 10))
 
-        # Replace button
-        replace_btn = ctk.CTkButton(
-            self.action_frame, 
-            text="Replace Mod",
-            command=self.replace_mod, 
-            fg_color=("orange", "darkorange"), 
-            hover_color=("darkorange", "orange"),
-            height=40,
-            font=ctk.CTkFont(size=13, weight="bold")
-        )
-        replace_btn.pack(pady=20)
+        # Check if the selected item is an archive
+        is_archive = mod_folder.lower().endswith(('.zip', '.rar'))
+        
+        if is_archive:
+            # Extract Archive button
+            extract_btn = ctk.CTkButton(
+                self.action_frame, 
+                text="Extract Archive",
+                command=self.extract_single_archive, 
+                fg_color=("green", "darkgreen"), 
+                hover_color=("darkgreen", "green"),
+                height=40,
+                font=ctk.CTkFont(size=13, weight="bold")
+            )
+            extract_btn.pack(pady=20, padx=10, fill="x")
+        else:
+            # Replace button for folders
+            replace_btn = ctk.CTkButton(
+                self.action_frame, 
+                text="Replace Mod",
+                command=self.replace_mod, 
+                fg_color=("orange", "darkorange"), 
+                hover_color=("darkorange", "orange"),
+                height=40,
+                font=ctk.CTkFont(size=13, weight="bold")
+            )
+            replace_btn.pack(pady=20, padx=10, fill="x")
+
+    def extract_single_archive(self):
+        """Extract a single archive file."""
+        if not self.selected_character or not self.selected_mod_folder:
+            messagebox.showerror("Error", "No archive selected.")
+            return
+
+        char_path = os.path.join(self.mods_from, self.selected_character)
+        archive_path = os.path.join(char_path, self.selected_mod_folder)
+        
+        if extract_archive(archive_path, char_path):
+            messagebox.showinfo("Success", "Archive extracted successfully!")
+            # Refresh the mod list
+            self.show_character_mods(self.selected_character, match_character(self.selected_character, self.character_list))
+        else:
+            messagebox.showerror("Error", "Failed to extract archive.")
+
+    def extract_all_archives(self):
+        """Extract all archives in the character folder."""
+        if not self.selected_character:
+            messagebox.showerror("Error", "No character selected.")
+            return
+
+        char_path = os.path.join(self.mods_from, self.selected_character)
+        archives = [f for f in os.listdir(char_path) if f.lower().endswith(('.zip', '.rar'))]
+        
+        if not archives:
+            messagebox.showinfo("Info", "No archives found to extract.")
+            return
+
+        success = True
+        for archive in archives:
+            archive_path = os.path.join(char_path, archive)
+            if not extract_archive(archive_path, char_path):
+                success = False
+                break
+
+        if success:
+            messagebox.showinfo("Success", "All archives extracted successfully!")
+            # Refresh the mod list
+            self.show_character_mods(self.selected_character, match_character(self.selected_character, self.character_list))
+        else:
+            messagebox.showerror("Error", "Failed to extract some archives.")
 
     def replace_mod(self):
         """Replace the mod in the destination folder."""
