@@ -5,10 +5,11 @@ Constants and configuration data for the Mod Manager.
 SAVE_FILE = "mod_manager_data.json"
 
 GAME_TABS = [
-    "ZenlessZoneZero",
-    "Wuthering Waves", 
     "Genshin",
     "Honkai Star Rail"
+    "ZenlessZoneZero",
+    "Wuthering Waves", 
+    
 ]
 
 CHARACTER_LISTS = {
