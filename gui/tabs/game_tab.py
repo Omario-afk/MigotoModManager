@@ -7,6 +7,7 @@ from tkinter import messagebox
 from utils.character_matcher import match_character
 from utils.file_operations import get_directory_contents, find_matching_mods, copy_mod_folder
 from gui.widgets.custom_widgets import CharacterImageButton
+from utils.zip.extract import extract_archive
 
 class GameTab(ctk.CTkFrame):
     """Game tab for mod management."""
