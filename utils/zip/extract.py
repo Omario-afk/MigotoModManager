@@ -191,4 +191,3 @@ def extract_rar(rar_path, extract_to):
         messagebox.showerror("Error", f"Failed to extract RAR: {str(e)}")
         return False
 
-extract_archive("C:\\Users\\omari\\Downloads\\mods\\wuwa\\Jinhsi\\jinhsi_honglan.rar")

@@ -16,6 +16,6 @@
     "to": ""
   },
   "archive_settings": {
-    "delete_after_extract": 1
+    "delete_after_extract": 0
   }
 }

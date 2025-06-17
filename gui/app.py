@@ -20,14 +20,19 @@ class App(ctk.CTk):
 
         self.game_paths = load_data()
         self.tabs = {}
-
         
-
+        # Create tabs in specific order
+        self.tab_order = GAME_TABS + ["Settings"]
+        
+        # Create all tabs first to maintain order
+        for tab_name in self.tab_order:
+            self.tabview.add(tab_name)
+        
         # Game tabs
         self.refresh_game_tabs()
         
         # Settings tab
-        self.settings_tab = self.tabview.add("Settings")
+        self.settings_tab = self.tabview.get("Settings")
         self.settings_frame = SettingsTab(self.settings_tab, self.game_paths, self.refresh_game_tabs)
         self.settings_frame.pack(expand=True, fill="both")
 
@@ -36,7 +41,7 @@ class App(ctk.CTk):
         # Remove old game tabs
         for game in GAME_TABS:
             if game in self.tabs:
-                self.tabview.delete(game)
+                self.tabs[game].destroy()
                 del self.tabs[game]
 
         # Add game tabs with current settings
@@ -44,7 +49,7 @@ class App(ctk.CTk):
             mods_from = self.game_paths.get(game, {}).get("from", "")
             mods_to = self.game_paths.get(game, {}).get("to", "")
             character_list = CHARACTER_LISTS.get(game, [])
-            tab = self.tabview.add(game)
+            tab = self.tabview.get(game)
             self.tabs[game] = tab
             game_tab = GameTab(tab, game, mods_from, mods_to, character_list)
             game_tab.pack(expand=True, fill="both")
