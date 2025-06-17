@@ -6,7 +6,7 @@ SAVE_FILE = "mod_manager_data.json"
 
 GAME_TABS = [
     "Genshin",
-    "Honkai Star Rail"
+    "Honkai Star Rail",
     "ZenlessZoneZero",
     "Wuthering Waves", 
     
