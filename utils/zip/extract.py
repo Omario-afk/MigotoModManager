@@ -117,21 +117,33 @@ def extract_archive(archive_path, extract_to=None):
         # Get file extension
         _, ext = os.path.splitext(archive_path.lower())
         
+        success = False
         if ext == '.zip':
-            return extract_zip(archive_path, extract_to)
+            success = extract_zip(archive_path, extract_to)
         elif ext == '.rar':
             if not _unrar.is_installed():
                 messagebox.showerror(
                     "Error", 
                     "UnRAR is not installed or not found. Please install WinRAR (Windows) or unrar (Linux/Mac).\n\n"
                     "Windows: Download and install WinRAR from https://www.win-rar.com/\n"
-                    
                 )
                 return False
-            return extract_rar(archive_path, extract_to)
+            success = extract_rar(archive_path, extract_to)
         else:
             messagebox.showerror("Error", f"Unsupported archive format: {ext}")
             return False
+            
+        # If extraction was successful and delete_after_extract is enabled, delete the archive
+        if success:
+            from config.settings import load_data
+            settings = load_data()
+            if settings.get("archive_settings", {}).get("delete_after_extract", 0) == 1:
+                try:
+                    os.remove(archive_path)
+                except Exception as e:
+                    print(f"Failed to delete archive: {str(e)}")
+            
+        return success
             
     except Exception as e:
         messagebox.showerror("Error", f"Failed to extract archive: {str(e)}")

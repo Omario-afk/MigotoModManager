@@ -163,6 +163,25 @@ class SettingsTab(ctk.CTkFrame):
         for game in GAME_TABS:
             self._create_path_widget(game)
         
+        # Add Archive Management section
+        ctk.CTkLabel(
+            self, 
+            text="Archive Management", 
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(pady=10)
+        
+        # Create frame for archive settings
+        archive_frame = ctk.CTkFrame(self)
+        archive_frame.pack(fill="x", padx=10, pady=5)
+        
+        # Add checkbox for archive deletion
+        self.delete_after_extract = ctk.CTkCheckBox(
+            archive_frame,
+            text="Delete archive after successful extraction",
+            font=ctk.CTkFont(size=12)
+        )
+        self.delete_after_extract.pack(padx=10, pady=5, anchor="w")
+        
         ctk.CTkLabel(
             self, 
             text="Update Characters", 
@@ -184,6 +203,11 @@ class SettingsTab(ctk.CTkFrame):
             if game in self.game_paths:
                 from_entry.insert(0, self.game_paths[game].get("from", ""))
                 to_entry.insert(0, self.game_paths[game].get("to", ""))
+        
+        # Load archive settings
+        if "archive_settings" in self.game_paths:
+            should_delete = self.game_paths["archive_settings"].get("delete_after_extract", 0)
+            self.delete_after_extract.select() if should_delete == 1 else self.delete_after_extract.deselect()
 
     def _browse_dir(self, entry):
         """Browse for directory and update entry."""
@@ -203,6 +227,12 @@ class SettingsTab(ctk.CTkFrame):
                 "from": from_entry.get().strip().replace('\\', '/'),
                 "to": to_entry.get().strip().replace('\\', '/')
             }
+        
+        # Save archive settings
+        self.game_paths["archive_settings"] = {
+            "delete_after_extract": self.delete_after_extract.get()
+        }
+        
         save_data(self.game_paths)
         self.on_save()
         messagebox.showinfo("Saved", "Settings saved successfully.")
