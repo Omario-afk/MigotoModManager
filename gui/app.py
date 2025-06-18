@@ -13,12 +13,22 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Modern Mod Manager")
-        self.geometry("1100x650")
+        
+        # Load geometry from settings
+        self.game_paths = load_data()
+        width = 1200
+        height = 750
+        
+        if "app_settings" in self.game_paths:
+            app_settings = self.game_paths["app_settings"]
+            width = app_settings.get("width", 1200)
+            height = app_settings.get("height", 750)
+        
+        self.geometry(f"{width}x{height}")
 
         self.tabview = ctk.CTkTabview(self)
         self.tabview.pack(expand=True, fill="both", padx=10, pady=10)
 
-        self.game_paths = load_data()
         self.tabs = {}
         
         # Create tabs in specific order - Settings will be last

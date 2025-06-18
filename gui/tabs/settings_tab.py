@@ -94,6 +94,34 @@ class SettingsTab(ctk.CTkFrame):
 
         frame.grid_columnconfigure(0, weight=1)
 
+    def _create_resolution_widget(self):
+        """Create app resolution settings widget."""
+        frame = ctk.CTkFrame(self)
+        frame.pack(fill="x", padx=10, pady=5)
+        
+        ctk.CTkLabel(
+            frame,
+            text="App Resolution",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(pady=5)
+        
+        # Resolution input frame
+        res_frame = ctk.CTkFrame(frame)
+        res_frame.pack(fill="x", padx=10, pady=5)
+        
+        # Width input
+        ctk.CTkLabel(res_frame, text="Width:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.width_entry = ctk.CTkEntry(res_frame, placeholder_text="1200", width=100)
+        self.width_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        
+        # Height input
+        ctk.CTkLabel(res_frame, text="Height:").grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        self.height_entry = ctk.CTkEntry(res_frame, placeholder_text="750", width=100)
+        self.height_entry.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        
+        res_frame.grid_columnconfigure(1, weight=1)
+        res_frame.grid_columnconfigure(3, weight=1)
+
     # ====== THREADING AND STATUS METHODS - NEW ======
     def _get_icons(self, game):
         """Start icon download in separate thread."""
@@ -163,6 +191,9 @@ class SettingsTab(ctk.CTkFrame):
         for game in GAME_TABS:
             self._create_path_widget(game)
         
+        # Add App Resolution section
+        self._create_resolution_widget()
+        
         # Add Archive Management section
         ctk.CTkLabel(
             self, 
@@ -204,6 +235,17 @@ class SettingsTab(ctk.CTkFrame):
                 from_entry.insert(0, self.game_paths[game].get("from", ""))
                 to_entry.insert(0, self.game_paths[game].get("to", ""))
         
+        # Load app resolution settings
+        if "app_settings" in self.game_paths:
+            width = self.game_paths["app_settings"].get("width", "1200")
+            height = self.game_paths["app_settings"].get("height", "750")
+            self.width_entry.insert(0, str(width))
+            self.height_entry.insert(0, str(height))
+        else:
+            # Default values
+            self.width_entry.insert(0, "1200")
+            self.height_entry.insert(0, "750")
+        
         # Load archive settings
         if "archive_settings" in self.game_paths:
             should_delete = self.game_paths["archive_settings"].get("delete_after_extract", 0)
@@ -227,6 +269,21 @@ class SettingsTab(ctk.CTkFrame):
                 "from": from_entry.get().strip().replace('\\', '/'),
                 "to": to_entry.get().strip().replace('\\', '/')
             }
+        
+        # Save app resolution settings
+        try:
+            width = int(self.width_entry.get().strip())
+            height = int(self.height_entry.get().strip())
+            if width <= 0 or height <= 0:
+                raise ValueError("Dimensions must be positive")
+        except ValueError as e:
+            messagebox.showerror("Invalid Resolution", f"Please enter valid width and height values.\n{str(e)}")
+            return
+        
+        self.game_paths["app_settings"] = {
+            "width": width,
+            "height": height
+        }
         
         # Save archive settings
         self.game_paths["archive_settings"] = {
