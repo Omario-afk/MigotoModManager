@@ -19,7 +19,7 @@ CHARACTER_LISTS = {
         'Miyabi', 'Nekomata', 'Nicole', 'Pan Yinhu', 'Piper', 'Pulchra', 'Qingyi', 'Rina', 'Seth', 'Soldier 11', 'Soukaku',
         'Trigger', 'Ukinami Yuzuha', 'Vivian', 'Yanagi', 'Yixuan', 'Zhu Yuan'
     ],
-    "Wuthering Waves": ['Aalto', 'Augusta', 'Baizhi', 'Brant', 'Calcharo', 'Camellya', 'Cantarella', 'Carlotta', 'Cartethyia', 'Changli', 'Chisa', 'Chixia', 'Ciaccona', 'Danjin', 'Encore', 'Galbrena', 'Iuno', 'Jianxin', 'Jinhsi', 'Jiyan', 'Lingyang', 'Lumi', 'Lupa', 'Mortefi', 'Phoebe', 'Phrolova', 'Qiuyuan', 'Roccia', 'Rover (Aero)', 'Rover (Havoc)', 'Rover (Spectro)', 'Sanhua', 'Taoqi', 'The Shorekeeper', 'Verina', 'Xiangli Yao', 'Yangyang', 'Yinlin', 'Youhu', 'Yuanwu', 'Zani', 'Zhezhi'],
+    "Wuthering Waves": ['Aalto', 'Augusta', 'Baizhi', 'Brant', 'Calcharo', 'Camellya', 'Cantarella', 'Carlotta', 'Cartethyia', 'Changli', 'Chisa', 'Chixia', 'Ciaccona', 'Danjin', 'Encore', 'Galbrena', 'Iuno', 'Jianxin', 'Jinhsi', 'Jiyan', 'Lingyang', 'Lumi', 'Lupa', 'Mortefi', 'Phoebe', 'Phrolova', 'Qiuyuan', 'Roccia', 'Rover (Aero)', 'Rover (Havoc)', 'Rover (Spectro)', 'Sanhua', 'Taoqi', 'Shorekeeper', 'Verina', 'Xiangli Yao', 'Yangyang', 'Yinlin', 'Youhu', 'Yuanwu', 'Zani', 'Zhezhi'],
     "Genshin": [
         # Add Genshin characters here
     ],
