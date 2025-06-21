@@ -14,7 +14,7 @@ GAME_TABS = [
 
 CHARACTER_LISTS = {
     "ZenlessZoneZero": [
-        'Alice Thymefield', 'Anby', 'Anby: Soldier 0', 'Anton', 'Astra Yao', 'Ben', 'Billy', 'Burnice', 'Caesar', 'Corin',
+        'Alice Thymefield', 'Anby', 'Anby: Soldier 0', 'Anton', 'Astra Yao', 'Belle', 'Ben', 'Billy', 'Burnice', 'Caesar', 'Corin',
         'Ellen', 'Evelyn', 'Grace', 'Harumasa', 'Hugo', 'Jane Doe', 'Ju Fufu', 'Koleda', 'Lighter', 'Lucy', 'Lycaon',
         'Miyabi', 'Nekomata', 'Nicole', 'Pan Yinhu', 'Piper', 'Pulchra', 'Qingyi', 'Rina', 'Seth', 'Soldier 11', 'Soukaku',
         'Trigger', 'Ukinami Yuzuha', 'Vivian', 'Yanagi', 'Yixuan', 'Zhu Yuan'

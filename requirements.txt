@@ -4,3 +4,5 @@ selenium>=4.15.2
 webdriver-manager>=4.0.1
 requests>=2.31.0
 beautifulsoup4>=4.12.2
+pywebview>=5.4
+cefpython3>=66.1
