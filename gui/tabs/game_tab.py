@@ -4,12 +4,67 @@ Game tab for managing mods for a specific game.
 import os
 import threading
 import customtkinter as ctk
-from tkinter import messagebox
+from PIL import Image
 from utils.character_matcher import match_character
 from utils.file_operations import get_directory_contents, find_matching_mods, copy_mod_folder
 from gui.widgets.custom_widgets import CharacterImageButton
 from utils.zip.extract import extract_archive
 from gui.widgets.extraction_progress import ExtractionProgressWindow
+import re
+
+class InstructionsWindow(ctk.CTkToplevel):
+    """Window to display mod instructions."""
+    
+    def __init__(self, parent, mod_name, instructions_text):
+        super().__init__(parent)
+        self.title(f"Instructions - {mod_name}")
+        self.geometry("500x400")
+        self.resizable(True, True)
+        
+        # Make it modal
+        self.transient(parent)
+        self.grab_set()
+        
+        # Create layout
+        self._create_layout(instructions_text)
+        
+        # Center the window
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (500 // 2)
+        y = (self.winfo_screenheight() // 2) - (400 // 2)
+        self.geometry(f"500x400+{x}+{y}")
+
+    def _create_layout(self, instructions_text):
+        """Create the window layout."""
+        # Title
+        title_label = ctk.CTkLabel(
+            self, 
+            text="Mod Instructions", 
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title_label.pack(pady=(20, 10))
+        
+        # Instructions text area
+        text_area = ctk.CTkTextbox(
+            self,
+            width=460,
+            height=300,
+            font=ctk.CTkFont(size=12)
+        )
+        text_area.pack(pady=10, padx=20, fill="both", expand=True)
+        
+        # Insert the instructions text
+        text_area.insert("1.0", instructions_text)
+        text_area.configure(state="disabled")  # Make it read-only
+        
+        # Close button
+        close_btn = ctk.CTkButton(
+            self,
+            text="Close",
+            command=self.destroy,
+            width=100
+        )
+        close_btn.pack(pady=(0, 20))
 
 class GameTab(ctk.CTkFrame):
     """Game tab for mod management."""
@@ -23,7 +78,6 @@ class GameTab(ctk.CTkFrame):
         self.toast_manager = toast_manager
         self.character_buttons = []
         self.selected_character = None
-        self.selected_mod_folder = None
         self.progress_window = None
 
         self._create_layout()
@@ -35,20 +89,21 @@ class GameTab(ctk.CTkFrame):
         self.character_frame = ctk.CTkScrollableFrame(self, width=300, height=400)
         self.character_frame.pack(side="left", fill="y", padx=10, pady=10)
 
-        self.mod_frame = ctk.CTkFrame(self)
-        self.mod_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        # Main content frame
+        self.content_frame = ctk.CTkFrame(self)
+        self.content_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
 
-        self.action_frame = ctk.CTkFrame(self)
-        self.action_frame.pack(side="right", fill="y", padx=10, pady=10)
+        # Mods display frame
+        self.mods_frame = ctk.CTkScrollableFrame(self.content_frame)
+        self.mods_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.mod_label = ctk.CTkLabel(self.mod_frame, text="Select a character to view mods.")
-        self.mod_label.pack(pady=10)
-
-        self.current_mod_label = ctk.CTkLabel(self.mod_frame, text="")
-        self.current_mod_label.pack(pady=5)
-
-        self.action_label = ctk.CTkLabel(self.action_frame, text="Select a mod to see actions.")
-        self.action_label.pack(pady=10)
+        # Initial message
+        self.initial_label = ctk.CTkLabel(
+            self.mods_frame, 
+            text="Select a character to view mods.",
+            font=ctk.CTkFont(size=16)
+        )
+        self.initial_label.pack(pady=50)
 
     def populate_characters(self):
         """Populate the character list with image buttons."""
@@ -104,309 +159,361 @@ class GameTab(ctk.CTkFrame):
     def show_character_mods(self, folder, matched_name):
         """Show mods for the selected character."""
         self.selected_character = folder
-        self._clear_frames()
         
-        ctk.CTkLabel(
-            self.mod_frame, 
-            text=f"{matched_name} Mods:", 
-            font=ctk.CTkFont(size=18, weight="bold")
-        ).pack(pady=10)
+        # Clear the mods frame
+        for widget in self.mods_frame.winfo_children():
+            widget.destroy()
         
-        # Create a frame for available mods
-        mods_container = ctk.CTkScrollableFrame(self.mod_frame)
-        mods_container.pack(fill="both", expand=True, padx=5, pady=5)
+        # Title
+        title_label = ctk.CTkLabel(
+            self.mods_frame, 
+            text=f"{matched_name} Mods", 
+            font=ctk.CTkFont(size=20, weight="bold")
+        )
+        title_label.pack(pady=(10, 20))
         
         char_path = os.path.join(self.mods_from, folder)
         if not os.path.isdir(char_path):
-            ctk.CTkLabel(mods_container, text="(Character folder not found)").pack()
-        else:
-            subfolders = get_directory_contents(char_path)
-            if not subfolders:
-                ctk.CTkLabel(mods_container, text="(No mod folders)").pack()
-            else:
-                # Check if any of the items are archives
-                has_archives = any(f.lower().endswith(('.zip', '.rar')) for f in subfolders)
-                
-                # Add Extract All button if archives exist
-                if has_archives:
-                    extract_btn = ctk.CTkButton(
-                        mods_container,
-                        text="Extract All Archives",
-                        command=self.extract_all_archives,
-                        fg_color=("green", "darkgreen"),
-                        hover_color=("darkgreen", "green"),
-                        height=40,
-                        font=ctk.CTkFont(size=13, weight="bold")
-                    )
-                    extract_btn.pack(fill="x", padx=10, pady=10)
-                
-                # Display all available mods
-                for sub in subfolders:
-                    is_archive = sub.lower().endswith(('.zip', '.rar'))
-                    
-                    btn = ctk.CTkButton(
-                        mods_container, 
-                        text=sub, 
-                        anchor="w",
-                        height=35,
-                        font=ctk.CTkFont(size=12),
-                        command=lambda s=sub: self.select_mod_folder(s),
-                        fg_color=("orange", "darkorange") if is_archive else None,
-                        hover_color=("darkorange", "orange") if is_archive else None
-                    )
-                    btn.pack(fill="x", padx=10, pady=3)
+            ctk.CTkLabel(self.mods_frame, text="(Character folder not found)").pack()
+            return
         
-        # Add a separator
-        separator = ctk.CTkFrame(self.mod_frame, height=2)
-        separator.pack(fill="x", padx=5, pady=15)
-        
-        # Display current mod in "to" folder at the bottom
-        self._create_current_mod_section(folder)
-        
-        # Add another separator
-        separator2 = ctk.CTkFrame(self.mod_frame, height=2)
-        separator2.pack(fill="x", padx=5, pady=15)
-        
-        # Create download section
-        self._create_download_section(folder)
+        subfolders = get_directory_contents(char_path)
+        if not subfolders:
+            ctk.CTkLabel(self.mods_frame, text="(No mods found)").pack()
+            return
 
-    def _clear_frames(self):
-        """Clear mod and action frames."""
-        for widget in self.mod_frame.winfo_children():
-            widget.destroy()
-        self.current_mod_label = ctk.CTkLabel(self.mod_frame, text="")
-        self.current_mod_label.pack(pady=5)
-        for widget in self.action_frame.winfo_children():
-            widget.destroy()
-        self.action_label = ctk.CTkLabel(self.action_frame, text="Select a mod to see actions.")
-        self.action_label.pack(pady=10)
+        # Get currently installed mods for comparison
+        current_mods = self._get_current_mods(folder)
+        
+        # Create a frame for the grid layout
+        grid_frame = ctk.CTkFrame(self.mods_frame)
+        grid_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Configure grid
+        mods_per_row = 3
+        for i in range(mods_per_row):
+            grid_frame.grid_columnconfigure(i, weight=1)
+        
+        # Display each mod as a card
+        for i, mod_folder in enumerate(subfolders):
+            row = i // mods_per_row
+            col = i % mods_per_row
+            
+            # Check if this mod is currently installed
+            is_current = mod_folder in current_mods
+            is_archive = mod_folder.lower().endswith(('.zip', '.rar'))
+            
+            print(f"Debug: Checking mod '{mod_folder}' - is_current: {is_current}")
+            
+            # Create mod card
+            mod_card = self._create_mod_card(grid_frame, mod_folder, is_current, is_archive)
+            mod_card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
 
-    def _create_current_mod_section(self, folder):
-        """Create the current mod display section."""
-        current_mod_frame = ctk.CTkFrame(self.mod_frame)
-        current_mod_frame.pack(fill="x", padx=5, pady=5)
+    def _get_current_mods(self, character_folder):
+        """Get list of currently installed mods for the character."""
+        if not self.mods_to or not os.path.isdir(self.mods_to):
+            print(f"Debug: No mods_to directory or not set")
+            return []
         
-        ctk.CTkLabel(
-            current_mod_frame, 
-            text="Currently Installed:", 
-            font=ctk.CTkFont(size=14, weight="bold")
-        ).pack(pady=(10, 5))
+        # Use the original character folder name, not the matched name
+        # The destination directory likely uses the original folder structure
+        print(f"Debug: Character folder: {character_folder}")
         
-        self.current_mod_label = ctk.CTkLabel(
-            current_mod_frame, 
-            text="",
-            font=ctk.CTkFont(size=11),
-            wraplength=300
+        search_terms = character_folder.lower().split()
+        matching_mods = find_matching_mods(self.mods_to, character_folder, search_terms)
+        print(f"Debug: Matching mods found: {matching_mods}")
+        
+        # Extract just the mod folder names (remove character folder prefix)
+        current_mod_names = []
+        for mod_path in matching_mods:
+            # Split on both / and \ to get the folder name
+            mod_name = re.split(r"[\\/]+", mod_path)[-1]
+            current_mod_names.append(mod_name)
+        
+        print(f"Debug: Current mod names: {current_mod_names}")
+        return current_mod_names
+
+    def _create_mod_card(self, parent_frame, mod_folder, is_current, is_archive):
+        """Create a mod card widget."""
+        # Main card frame
+        card_frame = ctk.CTkFrame(
+            parent_frame,
+            width=200,
+            height=280,  # Back to original height
+            corner_radius=10
         )
-        self.current_mod_label.pack(pady=(0, 10))
         
-        # Create download section
-        #self._create_download_section(current_mod_frame, folder)
+        # Add green background if currently installed
+        if is_current:
+            card_frame.configure(fg_color=("lightgreen", "darkgreen"))
         
-        self.display_current_mod(folder)
-
-    def _create_download_section(self, character_folder):
-        """Create the download section with its own frame."""
-        download_frame = ctk.CTkFrame(self.mod_frame)
-        download_frame.pack(fill="x", padx=5, pady=5)
+        # Image frame - back to original proportions
+        image_frame = ctk.CTkFrame(card_frame, height=150, corner_radius=8)
+        image_frame.pack(fill="x", padx=10, pady=(10, 5))
+        image_frame.pack_propagate(False)
         
-        ctk.CTkLabel(
-            download_frame,
-            text="Download More Mods",
-            font=ctk.CTkFont(size=14, weight="bold")
-        ).pack(pady=(10, 5))
-        
-        # Add Download More button
-        download_btn = ctk.CTkButton(
-            download_frame,
-            text="Browse GameBanana",
-            command=lambda: self.download_more_mods(character_folder),
-            fg_color=("green", "darkgreen"),
-            hover_color=("darkgreen", "green"),
-            height=35,
-            font=ctk.CTkFont(size=12, weight="bold")
-        )
-        download_btn.pack(pady=10)
-
-    def download_more_mods(self, character_folder):
-        """Handle downloading more mods for the selected character."""
-        matched_name = match_character(character_folder, self.character_list)
-        # TODO: Implement the download functionality
-        if self.toast_manager:
-            self.toast_manager.show_toast(
-                f"Download functionality for {matched_name} will be implemented here.",
-                "info",
-                3000
-            )
-
-    def display_current_mod(self, character_folder):
-        """Display the current mod in the destination folder."""
-        if not self.mods_to:
-            self.current_mod_label.configure(text="Destination folder not set.")
-            return
-
-        if not os.path.isdir(self.mods_to):
-            self.current_mod_label.configure(text="Destination folder not found.")
-            return
-
-        # Get the character name and create search terms
-        matched_name = match_character(character_folder, self.character_list)
-        search_terms = matched_name.lower().split()
-        
-        # Find matching mods
-        matching_subfolders = find_matching_mods(self.mods_to, matched_name, search_terms)
-        
-        if not matching_subfolders:
-            self.current_mod_label.configure(text="No matching mods found.")
-            return
-
-        # Display each matching subfolder on a new line
-        mod_text = "\n".join(matching_subfolders)
-        self.current_mod_label.configure(text=mod_text)
-
-    def select_mod_folder(self, mod_folder):
-        """Select a mod folder for actions."""
-        self.selected_mod_folder = mod_folder
-
-        for widget in self.action_frame.winfo_children():
-            widget.destroy()
-
-        # Selected mod info
-        info_frame = ctk.CTkFrame(self.action_frame)
-        info_frame.pack(fill="x", padx=10, pady=10)
-        
-        ctk.CTkLabel(
-            info_frame, 
-            text="Selected Mod:", 
-            font=ctk.CTkFont(size=12, weight="bold")
-        ).pack(pady=(10, 5))
-        
-        ctk.CTkLabel(
-            info_frame, 
-            text=mod_folder, 
-            font=ctk.CTkFont(size=11),
-            wraplength=180
-        ).pack(pady=(0, 10))
-
-        # Check if the selected item is an archive
-        is_archive = mod_folder.lower().endswith(('.zip', '.rar'))
-        
+        # Image (placeholder for now)
         if is_archive:
-            # Extract Archive button
-            extract_btn = ctk.CTkButton(
-                self.action_frame, 
-                text="Extract Archive",
-                command=self.extract_single_archive, 
-                fg_color=("green", "darkgreen"), 
-                hover_color=("darkgreen", "green"),
-                height=40,
-                font=ctk.CTkFont(size=13, weight="bold")
-            )
-            extract_btn.pack(pady=20, padx=10, fill="x")
+            image_path = "assets/static/file-archive.png"
         else:
-            # Replace button for folders
-            replace_btn = ctk.CTkButton(
-                self.action_frame, 
-                text="Replace Mod",
-                command=self.replace_mod, 
-                fg_color=("orange", "darkorange"), 
-                hover_color=("darkorange", "orange"),
-                height=40,
-                font=ctk.CTkFont(size=13, weight="bold")
+            image_path = "assets/static/placeholder.webp"
+        
+        try:
+            image = ctk.CTkImage(
+                light_image=Image.open(image_path),
+                dark_image=Image.open(image_path),
+                size=(180, 140)
             )
-            replace_btn.pack(pady=20, padx=10, fill="x")
-
-    def extract_single_archive(self):
-        """Extract a single archive file."""
-        if not self.selected_character or not self.selected_mod_folder:
-            if self.toast_manager:
-                self.toast_manager.show_toast("No archive selected.", "error", 3000)
-            return
-
-        char_path = os.path.join(self.mods_from, self.selected_character)
-        archive_path = os.path.join(char_path, self.selected_mod_folder)
+            image_label = ctk.CTkLabel(image_frame, image=image, text="")
+            image_label.pack(expand=True, fill="both", padx=5, pady=5)
+        except Exception as e:
+            # Fallback if image fails to load
+            image_label = ctk.CTkLabel(
+                image_frame, 
+                text="📁" if not is_archive else "📦",
+                font=ctk.CTkFont(size=48)
+            )
+            image_label.pack(expand=True, fill="both")
         
-        # Create progress window
-        self.progress_window = ExtractionProgressWindow(self, total_files=1)
-        
-        # Start extraction in a separate thread
-        thread = threading.Thread(
-            target=self._extract_single_archive_thread,
-            args=(archive_path, char_path),
-            daemon=True
+        # Mod name - this will expand to fill available space
+        mod_display_name = mod_folder
+        if is_current:
+            mod_display_name += " (Current)"
+            
+        name_label = ctk.CTkLabel(
+            card_frame,
+            text=mod_display_name,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            wraplength=180
         )
-        thread.start()
-
-    def _extract_single_archive_thread(self, archive_path, char_path):
-        """Thread function for single archive extraction."""
-        success = extract_archive(archive_path, char_path, self.progress_window)
+        name_label.pack(pady=(0, 5), fill="x", expand=True)
         
-        if success:
-            self.progress_window.update_progress(os.path.basename(archive_path), True)
-            # Show success toast
-            if self.toast_manager:
-                self.toast_manager.show_toast(
-                    f"Successfully extracted {os.path.basename(archive_path)}!",
-                    "success",
-                    3000
+        # Action buttons frame - stuck to bottom
+        buttons_frame = ctk.CTkFrame(card_frame, height=40)
+        buttons_frame.pack(fill="x", padx=10, pady=(0, 10), side="bottom")
+        buttons_frame.pack_propagate(False)
+        
+        # Delete button with trash icon
+        try:
+            delete_icon = ctk.CTkImage(
+                light_image=Image.open("assets/static/trash-2.png"),
+                dark_image=Image.open("assets/static/trash-2.png"),
+                size=(16, 16)
+            )
+            delete_btn = ctk.CTkButton(
+                buttons_frame,
+                image=delete_icon,
+                text="",
+                width=30,
+                height=30,
+                fg_color="red",
+                hover_color="darkred",
+                command=lambda: self._delete_mod(mod_folder)
+            )
+        except Exception as e:
+            # Fallback to text if icon fails to load
+            delete_btn = ctk.CTkButton(
+                buttons_frame,
+                text="🗑️",
+                width=30,
+                height=30,
+                font=ctk.CTkFont(size=14),
+                fg_color="red",
+                hover_color="darkred",
+                command=lambda: self._delete_mod(mod_folder)
+            )
+        delete_btn.pack(side="left", padx=(5, 0))
+        
+        # Right side buttons frame (for info and action buttons)
+        right_buttons_frame = ctk.CTkFrame(buttons_frame, fg_color="transparent")
+        right_buttons_frame.pack(side="right", padx=(0, 5))
+        
+        # Instructions button (only for folders, not archives)
+        if not is_archive:
+            has_instructions = self._check_for_instructions(mod_folder) is not None
+            try:
+                info_icon = ctk.CTkImage(
+                    light_image=Image.open("assets/static/info.png"),
+                    dark_image=Image.open("assets/static/info.png"),
+                    size=(16, 16)
                 )
-            # Refresh the mod list after a short delay
-            self.after(1000, lambda: self.show_character_mods(
+                instructions_btn = ctk.CTkButton(
+                    right_buttons_frame,
+                    image=info_icon,
+                    text="",
+                    width=30,
+                    height=30,
+                    fg_color="blue" if has_instructions else "gray",
+                    hover_color="darkblue" if has_instructions else "darkgray",
+                    command=lambda: self._show_instructions(mod_folder) if has_instructions else None,
+                    state="normal" if has_instructions else "disabled"
+                )
+            except Exception as e:
+                # Fallback to text if icon fails to load
+                instructions_btn = ctk.CTkButton(
+                    right_buttons_frame,
+                    text="📄",
+                    width=30,
+                    height=30,
+                    font=ctk.CTkFont(size=14),
+                    fg_color="blue" if has_instructions else "gray",
+                    hover_color="darkblue" if has_instructions else "darkgray",
+                    command=lambda: self._show_instructions(mod_folder) if has_instructions else None,
+                    state="normal" if has_instructions else "disabled"
+                )
+            instructions_btn.pack(side="left", padx=(0, 2))
+        
+        # Action button (download/extract icon)
+        if is_archive:
+            try:
+                extract_icon = ctk.CTkImage(
+                    light_image=Image.open("assets/static/package-open.png"),
+                    dark_image=Image.open("assets/static/package-open.png"),
+                    size=(16, 16)
+                )
+                action_btn = ctk.CTkButton(
+                    right_buttons_frame,
+                    image=extract_icon,
+                    text="",
+                    width=30,
+                    height=30,
+                    fg_color="orange",
+                    hover_color="darkorange",
+                    command=lambda: self._extract_mod(mod_folder)
+                )
+            except Exception as e:
+                # Fallback to text if icon fails to load
+                action_btn = ctk.CTkButton(
+                    right_buttons_frame,
+                    text="📦",
+                    width=30,
+                    height=30,
+                    font=ctk.CTkFont(size=14),
+                    fg_color="orange",
+                    hover_color="darkorange",
+                    command=lambda: self._extract_mod(mod_folder)
+                )
+        else:
+            try:
+                install_icon = ctk.CTkImage(
+                    light_image=Image.open("assets/static/arrow-down-from-line.png"),
+                    dark_image=Image.open("assets/static/arrow-down-from-line.png"),
+                    size=(16, 16)
+                )
+                action_btn = ctk.CTkButton(
+                    right_buttons_frame,
+                    image=install_icon,
+                    text="",
+                    width=30,
+                    height=30,
+                    fg_color="green" if not is_current else "gray",
+                    hover_color="darkgreen" if not is_current else "darkgray",
+                    command=lambda: self._install_mod(mod_folder) if not is_current else None,
+                    state="normal" if not is_current else "disabled"
+                )
+            except Exception as e:
+                # Fallback to text if icon fails to load
+                action_btn = ctk.CTkButton(
+                    right_buttons_frame,
+                    text="⬇️",
+                    width=30,
+                    height=30,
+                    font=ctk.CTkFont(size=14),
+                    fg_color="green" if not is_current else "gray",
+                    hover_color="darkgreen" if not is_current else "darkgray",
+                    command=lambda: self._install_mod(mod_folder) if not is_current else None,
+                    state="normal" if not is_current else "disabled"
+                )
+        action_btn.pack(side="left", padx=(0, 0))
+        
+        return card_frame
+
+    def _check_for_instructions(self, mod_folder):
+        """Check if a mod folder has an instructions file and return its content."""
+        if not self.selected_character:
+            return None
+        
+        mod_path = os.path.join(self.mods_from, self.selected_character, mod_folder)
+        
+        # Look for .txt files in the mod folder
+        try:
+            for file in os.listdir(mod_path):
+                if file.lower().endswith('.txt'):
+                    txt_path = os.path.join(mod_path, file)
+                    with open(txt_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        return f.read()
+        except Exception as e:
+            print(f"Error reading instructions for {mod_folder}: {e}")
+        
+        return None
+
+    def _show_instructions(self, mod_folder):
+        """Show instructions window for a mod."""
+        instructions = self._check_for_instructions(mod_folder)
+        if instructions:
+            InstructionsWindow(self, mod_folder, instructions)
+        else:
+            if self.toast_manager:
+                self.toast_manager.show_toast("No instructions file found.", "info", 3000)
+
+    def _delete_mod(self, mod_folder):
+        """Delete a mod folder."""
+        if not self.selected_character:
+            if self.toast_manager:
+                self.toast_manager.show_toast("No character selected.", "error", 3000)
+            return
+        
+        mod_path = os.path.join(self.mods_from, self.selected_character, mod_folder)
+        
+        try:
+            import shutil
+            if os.path.isdir(mod_path):
+                shutil.rmtree(mod_path)
+            else:
+                os.remove(mod_path)
+            
+            if self.toast_manager:
+                self.toast_manager.show_toast(f"Deleted {mod_folder}", "success", 3000)
+            
+            # Refresh the mod list
+            self.show_character_mods(
                 self.selected_character,
                 match_character(self.selected_character, self.character_list)
-            ))
-        else:
-            self.progress_window.update_progress(os.path.basename(archive_path), False)
+            )
+        except Exception as e:
             if self.toast_manager:
-                self.toast_manager.show_toast(
-                    f"Failed to extract {os.path.basename(archive_path)}.",
-                    "error",
-                    5000
-                )
+                self.toast_manager.show_toast(f"Failed to delete {mod_folder}: {str(e)}", "error", 5000)
 
-    def extract_all_archives(self):
-        """Extract all archives in the character folder."""
+    def _extract_mod(self, mod_folder):
+        """Extract an archive mod."""
         if not self.selected_character:
             if self.toast_manager:
                 self.toast_manager.show_toast("No character selected.", "error", 3000)
             return
 
         char_path = os.path.join(self.mods_from, self.selected_character)
-        archives = [f for f in os.listdir(char_path) if f.lower().endswith(('.zip', '.rar'))]
+        archive_path = os.path.join(char_path, mod_folder)
         
-        if not archives:
-            if self.toast_manager:
-                self.toast_manager.show_toast("No archives found to extract.", "info", 3000)
-            return
-
         # Create progress window
-        self.progress_window = ExtractionProgressWindow(self, total_files=len(archives))
+        self.progress_window = ExtractionProgressWindow(self, total_files=1)
         
         # Start extraction in a separate thread
         thread = threading.Thread(
-            target=self._extract_all_archives_thread,
-            args=(char_path, archives),
+            target=self._extract_archive_thread,
+            args=(archive_path, char_path, mod_folder),
             daemon=True
         )
         thread.start()
 
-    def _extract_all_archives_thread(self, char_path, archives):
-        """Thread function for extracting all archives."""
-        success = True
-        for archive in archives:
-            archive_path = os.path.join(char_path, archive)
-            if extract_archive(archive_path, char_path, self.progress_window):
-                self.progress_window.update_progress(archive, True)
-            else:
-                self.progress_window.update_progress(archive, False)
-                success = False
-                break
-
+    def _extract_archive_thread(self, archive_path, char_path, mod_folder):
+        """Thread function for archive extraction."""
+        success = extract_archive(archive_path, char_path, self.progress_window)
+        
         if success:
-            # Show success toast
+            self.progress_window.update_progress(mod_folder, True)
             if self.toast_manager:
                 self.toast_manager.show_toast(
-                    f"Successfully extracted {len(archives)} archive(s)!",
+                    f"Successfully extracted {mod_folder}!",
                     "success",
                     3000
                 )
@@ -416,36 +523,40 @@ class GameTab(ctk.CTkFrame):
                 match_character(self.selected_character, self.character_list)
             ))
         else:
+            self.progress_window.update_progress(mod_folder, False)
             if self.toast_manager:
                 self.toast_manager.show_toast(
-                    "Some archives failed to extract.",
+                    f"Failed to extract {mod_folder}.",
                     "error",
                     5000
                 )
 
-    def replace_mod(self):
-        """Replace the mod in the destination folder."""
-        if not self.selected_character or not self.selected_mod_folder:
+    def _install_mod(self, mod_folder):
+        """Install a mod folder."""
+        if not self.selected_character:
             if self.toast_manager:
-                self.toast_manager.show_toast("No mod selected.", "error", 3000)
+                self.toast_manager.show_toast("No character selected.", "error", 3000)
             return
 
-        source_path = os.path.join(self.mods_from, self.selected_character, self.selected_mod_folder)
-        dest_path = os.path.join(self.mods_to, self.selected_mod_folder)
+        source_path = os.path.join(self.mods_from, self.selected_character, mod_folder)
+        dest_path = os.path.join(self.mods_to, mod_folder)
 
         if copy_mod_folder(source_path, dest_path, self.game):
             if self.toast_manager:
                 self.toast_manager.show_toast(
-                    f"'{self.selected_mod_folder}'\nhas been copied to your Mods directory.",
+                    f"Successfully installed '{mod_folder}'!\nThe mod has been copied to your game directory.",
                     "success",
                     4000
                 )
-            # Refresh the current mod display
-            self.display_current_mod(self.selected_character)
+            # Refresh the mod list to update the green border
+            self.show_character_mods(
+                self.selected_character,
+                match_character(self.selected_character, self.character_list)
+            )
         else:
             if self.toast_manager:
                 self.toast_manager.show_toast(
-                    f"Failed to install '{self.selected_mod_folder}'.",
+                    f"Failed to install '{mod_folder}'.",
                     "error",
                     5000
                 )
