@@ -2,7 +2,7 @@
 Settings tab for configuring game mod directories.
 """
 import customtkinter as ctk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 # ====== THREADING IMPORTS - NEW ======
 import threading
 import queue
@@ -16,10 +16,11 @@ import sys
 class SettingsTab(ctk.CTkFrame):
     """Settings tab for configuring mod directories."""
     
-    def __init__(self, master, game_paths, on_save):
+    def __init__(self, master, game_paths, on_save, toast_manager=None):
         super().__init__(master)
         self.game_paths = game_paths
         self.on_save = on_save
+        self.toast_manager = toast_manager
         self.entries = {}
         # ====== BUTTON TRACKING - NEW ======
         self.get_buttons = {}  # Track get buttons for status updates
@@ -157,6 +158,13 @@ class SettingsTab(ctk.CTkFrame):
                     button = self.get_buttons[game]
                     button.configure(text="Done", fg_color="#28A745", hover_color="#218838")
                     button.configure(state="normal")
+                    # Show success toast
+                    if self.toast_manager:
+                        self.toast_manager.show_toast(
+                            f"Successfully downloaded icons for {game}!",
+                            "success",
+                            3000
+                        )
                     # Reset button after 3 seconds
                     self.after(3000, lambda g=game: self._reset_button(g))
                 elif message[0] == "error":
@@ -165,7 +173,13 @@ class SettingsTab(ctk.CTkFrame):
                     button = self.get_buttons[game]
                     button.configure(text="Error", fg_color="#DC3545", hover_color="#C82333")
                     button.configure(state="normal")
-                    messagebox.showerror("Download Error", f"Failed to download icons for {game}:\n{error}")
+                    # Show error toast
+                    if self.toast_manager:
+                        self.toast_manager.show_toast(
+                            f"Failed to download icons for {game}: {error}",
+                            "error",
+                            5000
+                        )
                     # Reset button after 3 seconds
                     self.after(3000, lambda g=game: self._reset_button(g))
         except queue.Empty:
@@ -277,7 +291,12 @@ class SettingsTab(ctk.CTkFrame):
             if width <= 0 or height <= 0:
                 raise ValueError("Dimensions must be positive")
         except ValueError as e:
-            messagebox.showerror("Invalid Resolution", f"Please enter valid width and height values.\n{str(e)}")
+            if self.toast_manager:
+                self.toast_manager.show_toast(
+                    f"Please enter valid width and height values.\n{str(e)}",
+                    "error",
+                    5000
+                )
             return
         
         self.game_paths["app_settings"] = {
@@ -290,6 +309,11 @@ class SettingsTab(ctk.CTkFrame):
             "delete_after_extract": self.delete_after_extract.get()
         }
         
-        save_data(self.game_paths)
-        self.on_save()
-        messagebox.showinfo("Saved", "Settings saved successfully.")
+        success, error = save_data(self.game_paths)
+        if success:
+            self.on_save()
+            if self.toast_manager:
+                self.toast_manager.show_toast("Settings saved successfully!", "success", 3000)
+        else:
+            if self.toast_manager:
+                self.toast_manager.show_toast(f"Failed to save settings: {error}", "error", 5000)

@@ -14,12 +14,13 @@ from gui.widgets.extraction_progress import ExtractionProgressWindow
 class GameTab(ctk.CTkFrame):
     """Game tab for mod management."""
     
-    def __init__(self, master, game, mods_from, mods_to, character_list):
+    def __init__(self, master, game, mods_from, mods_to, character_list, toast_manager=None):
         super().__init__(master)
         self.game = game
         self.mods_from = mods_from
         self.mods_to = mods_to
         self.character_list = character_list
+        self.toast_manager = toast_manager
         self.character_buttons = []
         self.selected_character = None
         self.selected_mod_folder = None
@@ -231,10 +232,12 @@ class GameTab(ctk.CTkFrame):
         """Handle downloading more mods for the selected character."""
         matched_name = match_character(character_folder, self.character_list)
         # TODO: Implement the download functionality
-        messagebox.showinfo(
-            "Download More",
-            f"Download functionality for {matched_name} will be implemented here."
-        )
+        if self.toast_manager:
+            self.toast_manager.show_toast(
+                f"Download functionality for {matched_name} will be implemented here.",
+                "info",
+                3000
+            )
 
     def display_current_mod(self, character_folder):
         """Display the current mod in the destination folder."""
@@ -316,7 +319,8 @@ class GameTab(ctk.CTkFrame):
     def extract_single_archive(self):
         """Extract a single archive file."""
         if not self.selected_character or not self.selected_mod_folder:
-            messagebox.showerror("Error", "No archive selected.")
+            if self.toast_manager:
+                self.toast_manager.show_toast("No archive selected.", "error", 3000)
             return
 
         char_path = os.path.join(self.mods_from, self.selected_character)
@@ -339,6 +343,13 @@ class GameTab(ctk.CTkFrame):
         
         if success:
             self.progress_window.update_progress(os.path.basename(archive_path), True)
+            # Show success toast
+            if self.toast_manager:
+                self.toast_manager.show_toast(
+                    f"Successfully extracted {os.path.basename(archive_path)}!",
+                    "success",
+                    3000
+                )
             # Refresh the mod list after a short delay
             self.after(1000, lambda: self.show_character_mods(
                 self.selected_character,
@@ -346,18 +357,26 @@ class GameTab(ctk.CTkFrame):
             ))
         else:
             self.progress_window.update_progress(os.path.basename(archive_path), False)
+            if self.toast_manager:
+                self.toast_manager.show_toast(
+                    f"Failed to extract {os.path.basename(archive_path)}.",
+                    "error",
+                    5000
+                )
 
     def extract_all_archives(self):
         """Extract all archives in the character folder."""
         if not self.selected_character:
-            messagebox.showerror("Error", "No character selected.")
+            if self.toast_manager:
+                self.toast_manager.show_toast("No character selected.", "error", 3000)
             return
 
         char_path = os.path.join(self.mods_from, self.selected_character)
         archives = [f for f in os.listdir(char_path) if f.lower().endswith(('.zip', '.rar'))]
         
         if not archives:
-            messagebox.showinfo("Info", "No archives found to extract.")
+            if self.toast_manager:
+                self.toast_manager.show_toast("No archives found to extract.", "info", 3000)
             return
 
         # Create progress window
@@ -384,26 +403,49 @@ class GameTab(ctk.CTkFrame):
                 break
 
         if success:
+            # Show success toast
+            if self.toast_manager:
+                self.toast_manager.show_toast(
+                    f"Successfully extracted {len(archives)} archive(s)!",
+                    "success",
+                    3000
+                )
             # Refresh the mod list after a short delay
             self.after(1000, lambda: self.show_character_mods(
                 self.selected_character,
                 match_character(self.selected_character, self.character_list)
             ))
+        else:
+            if self.toast_manager:
+                self.toast_manager.show_toast(
+                    "Some archives failed to extract.",
+                    "error",
+                    5000
+                )
 
     def replace_mod(self):
         """Replace the mod in the destination folder."""
         if not self.selected_character or not self.selected_mod_folder:
-            messagebox.showerror("Error", "No mod selected.")
+            if self.toast_manager:
+                self.toast_manager.show_toast("No mod selected.", "error", 3000)
             return
 
         source_path = os.path.join(self.mods_from, self.selected_character, self.selected_mod_folder)
         dest_path = os.path.join(self.mods_to, self.selected_mod_folder)
 
         if copy_mod_folder(source_path, dest_path, self.game):
-            messagebox.showinfo(
-                "Success", 
-                f"Successfully installed '{self.selected_mod_folder}'!\n\n"
-                f"The mod has been copied to your game directory."
-            )
+            if self.toast_manager:
+                self.toast_manager.show_toast(
+                    f"'{self.selected_mod_folder}'\nhas been copied to your Mods directory.",
+                    "success",
+                    4000
+                )
             # Refresh the current mod display
             self.display_current_mod(self.selected_character)
+        else:
+            if self.toast_manager:
+                self.toast_manager.show_toast(
+                    f"Failed to install '{self.selected_mod_folder}'.",
+                    "error",
+                    5000
+                )

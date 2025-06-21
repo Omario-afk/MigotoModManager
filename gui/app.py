@@ -6,6 +6,7 @@ from config.constants import GAME_TABS, CHARACTER_LISTS
 from config.settings import load_data
 from .tabs.settings_tab import SettingsTab
 from .tabs.game_tab import GameTab
+from .widgets.toast import ToastManager
 
 class App(ctk.CTk):
     """Main application class."""
@@ -13,6 +14,9 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Modern Mod Manager")
+        
+        # Initialize toast manager
+        self.toast_manager = ToastManager(self)
         
         # Load geometry from settings
         self.game_paths = load_data()
@@ -43,7 +47,7 @@ class App(ctk.CTk):
         
         # Settings tab
         self.settings_tab = self.tabview.tab("Settings")
-        self.settings_frame = SettingsTab(self.settings_tab, self.game_paths, self.refresh_game_tabs)
+        self.settings_frame = SettingsTab(self.settings_tab, self.game_paths, self.refresh_game_tabs, self.toast_manager)
         self.settings_frame.pack(expand=True, fill="both")
 
     def refresh_game_tabs(self):
@@ -69,5 +73,5 @@ class App(ctk.CTk):
             
             # Create the game tab with the new frame
             self.tabs[game] = frame
-            game_tab = GameTab(frame, game, mods_from, mods_to, character_list)
+            game_tab = GameTab(frame, game, mods_from, mods_to, character_list, self.toast_manager)
             game_tab.pack(expand=True, fill="both")
