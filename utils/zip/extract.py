@@ -19,9 +19,10 @@ def install_winrar():
         bool: True if installation was successful or already installed, False otherwise
     """
     try:
-        # Check for installer in the same directory
+        # Check for installer in the executables directory
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        installer_path = os.path.join(script_dir, "winrar-x64-711.exe")
+        executables_dir = os.path.join(script_dir, "executables")
+        installer_path = os.path.join(executables_dir, "winrar-x64-711.exe")
         
         if not os.path.exists(installer_path):
             return False
@@ -37,18 +38,25 @@ def install_winrar():
 def check_unrar_installed():
     """
     Check if UnRAR is installed and properly configured.
-    First checks for unrar.exe in the same directory as this script.
+    First checks for unrar.exe in the executables directory.
     If not found, attempts to install WinRAR from the local installer.
     
     Returns:
         bool: True if UnRAR is available, False otherwise
     """
     try:
-        # First check for unrar.exe in the same directory as this script
+        # First check for unrar.exe in the executables directory
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        local_unrar = os.path.join(script_dir, "unrar.exe")
+        executables_dir = os.path.join(script_dir, "executables")
+        local_unrar = os.path.join(executables_dir, "UnRAR.exe")
         if os.path.exists(local_unrar):
             rarfile.UNRAR_TOOL = local_unrar
+            return True
+            
+        # Also check for Rar.exe in the executables directory
+        local_rar = os.path.join(executables_dir, "Rar.exe")
+        if os.path.exists(local_rar):
+            rarfile.UNRAR_TOOL = local_rar
             return True
             
         # If not found locally, check common installation paths
